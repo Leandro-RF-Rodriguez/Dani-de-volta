@@ -43,7 +43,7 @@ h1{grid-column:1/-1;font-family:var(--script);font-weight:400;color:var(--sage);
 .portrait .sticker{position:absolute;right:-2%;bottom:6%;background:var(--sage);color:#fff;font-family:var(--hand);font-size:1.35rem;
   padding:8px 16px;border-radius:40px;transform:rotate(-8deg);box-shadow:0 8px 18px -8px rgba(0,0,0,.35)}
 .signoff{font-family:var(--script);color:var(--sage);font-size:clamp(2.8rem,6vw,4.4rem);line-height:1;margin:0}
-.right{position:relative;min-height:760px}
+.right{position:relative;min-height:760px;pointer-events:none}
 .balloons{position:absolute;inset:0}
 
 /* BALÕES */
@@ -56,6 +56,30 @@ h1{grid-column:1/-1;font-family:var(--script);font-weight:400;color:var(--sage);
 .b.gold{background:radial-gradient(circle at 32% 28%,#fff4cf 0 6%,#e2c47f 22%,#c9a24e 55%,#9c7a2f 100%)}
 .b.clear{background:radial-gradient(circle at 32% 28%,rgba(255,255,255,.95) 0 8%,rgba(250,240,215,.55) 30%,rgba(230,207,150,.45) 80%,rgba(201,162,78,.5) 100%);
   box-shadow:inset 0 0 0 1px rgba(201,162,78,.25)}
+.b{cursor:pointer;pointer-events:auto}
+.b:focus-visible{outline:3px solid var(--gold);outline-offset:4px}
+.b.popped{animation:pop .3s ease-out forwards!important;pointer-events:none}
+.b.regrow{animation:grow .7s cubic-bezier(.3,1.6,.5,1) both!important}
+@keyframes pop{0%{transform:scale(1)}35%{transform:scale(1.2)}100%{transform:scale(1.5);opacity:0}}
+@keyframes grow{from{transform:scale(0) translateY(60px);opacity:0}to{transform:scale(1);opacity:1}}
+.shard{position:fixed;z-index:3;pointer-events:none;font-family:var(--hand);font-size:1.7rem;font-weight:700;color:var(--sage-deep);
+  animation:shard .9s ease-out forwards;transform:translate(-50%,-50%)}
+@keyframes shard{to{transform:translate(-50%,-160%) scale(1.3);opacity:0}}
+.game{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;font-size:1rem;color:var(--brown)}
+.game .hint{font-family:var(--hand);font-size:1.45rem;color:var(--sage-deep)}
+.game .count{background:var(--paper);border:1.5px solid var(--gold-soft);border-radius:30px;padding:4px 14px;font-variant-numeric:tabular-nums;font-weight:600}
+.game .done{font-family:var(--hand);font-size:1.5rem;color:var(--gold)}
+button.refill{font-family:var(--body);font-size:.95rem;font-weight:600;color:var(--sage-deep);background:transparent;border:1.5px solid var(--sage);
+  border-radius:30px;padding:6px 16px;cursor:pointer}
+button.refill:hover{background:var(--sage);color:#fff}
+button.refill:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.toast{position:fixed;left:50%;top:50%;z-index:10;transform:translate(-50%,-50%) scale(.6);opacity:0;pointer-events:none;
+  background:var(--paper);border:3px solid var(--gold);border-radius:22px;padding:22px 34px;text-align:center;max-width:calc(100% - 32px);
+  box-shadow:0 30px 60px -20px rgba(74,58,40,.5);transition:opacity .2s,transform .25s cubic-bezier(.3,1.6,.5,1)}
+.toast.show{opacity:1;transform:translate(-50%,-50%) scale(1);animation:shake .45s .15s}
+.toast strong{display:block;font-family:var(--hand);font-size:clamp(2.2rem,7vw,3.4rem);color:var(--sage-deep);line-height:1.05}
+.toast span{font-size:1rem;color:var(--brown)}
+@keyframes shake{0%,100%{margin-left:0}20%{margin-left:-10px}40%{margin-left:10px}60%{margin-left:-7px}80%{margin-left:7px}}
 .b.clear i{position:absolute;width:9%;aspect-ratio:1;border-radius:50%;background:var(--gold);opacity:.85}
 @keyframes float{from{transform:translateY(0) rotate(-3deg)}to{transform:translateY(-18px) rotate(3deg)}}
 
@@ -92,8 +116,10 @@ button.party:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 
 @media (max-width:860px){
   .hero{grid-template-columns:1fr}
-  .right{position:absolute;inset:0;min-height:0;pointer-events:none;z-index:-1}
-  .right .b{opacity:.55}
+  .right{position:absolute;inset:0;min-height:0;pointer-events:none;z-index:0}
+  .left{position:relative;z-index:1}
+  .right .b{opacity:.6}
+  .game{justify-content:center}
   .left{align-items:center;text-align:center}
   .msg{max-width:34ch}
   h1{text-align:center}
@@ -108,6 +134,7 @@ button.party:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 <div class="bgwaves" aria-hidden="true"></div>
 <canvas id="confetti" aria-hidden="true"></canvas>
 
+<div class="toast" id="toast" role="alert"><strong>Para de ser doente!</strong><span>Os confetes são limitados, viu?</span></div>
 <main class="wrap">
   <section class="hero">
     <h1>Bem-vindo de volta!
@@ -115,6 +142,12 @@ button.party:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
     </h1>
     <div class="left">
       <p class="msg">As férias acabaram, mas a energia boa veio junto! Que bom ter você de volta com a gente, <strong>Luis</strong>. A equipe sentiu sua falta: das risadas, da parceria e da ajuda de sempre. Bora com tudo nessa volta!</p>
+      <div class="game" aria-live="polite">
+        <span class="hint">Psiu: clique nos balões para estourar!</span>
+        <span class="count" id="count">0 de 12 estourados</span>
+        <span class="done" id="done" hidden>Todos estourados! Bem-vindo, Luis!</span>
+        <button class="refill" id="refill" type="button" hidden>Encher de novo</button>
+      </div>
       <div class="portrait">
         <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
           <path d="M100 6 C 160 4, 196 48, 194 102 C 192 160, 146 196, 96 194 C 40 192, 4 150, 6 96 C 8 44, 50 8, 104 8" fill="none" stroke="#6f8a5e" stroke-width="2.4" stroke-linecap="round"/>
@@ -125,7 +158,7 @@ button.party:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
       </div>
       <p class="signoff">Seja bem-vindo, Luis!</p>
     </div>
-    <div class="right" aria-hidden="true"><div class="balloons" id="balloons"></div></div>
+    <div class="right"><div class="balloons" id="balloons"></div></div>
   </section>
 
   <section class="board">
@@ -171,6 +204,9 @@ button.party:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
     const d=document.createElement('div');d.className='b '+c;
     d.style.cssText=`--w:${w}%;left:${x}%;top:${y}%;--s:${s}px;--d:${6+i%4}s;--dl:${-i*.7}s`;
     d.innerHTML='<span class="str"></span>';
+    d.tabIndex=0;d.setAttribute('role','button');d.setAttribute('aria-label','Estourar balão');
+    d.addEventListener('click',e=>pop(d,e.clientX,e.clientY));
+    d.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();const b=d.getBoundingClientRect();pop(d,b.left+b.width/2,b.top+b.height/2)}});
     if(c==='clear'){for(let k=0;k<11;k++){const dot=document.createElement('i');dot.style.left=(18+Math.random()*62)+'%';dot.style.top=(22+Math.random()*62)+'%';if(k%3==0)dot.style.background='#e6cf96';d.appendChild(dot)}}
     host.appendChild(d);
   });
@@ -182,7 +218,7 @@ button.party:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
   let W,H,dpr,parts=[];
   function size(){dpr=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*dpr;cv.height=H*dpr;ctx.setTransform(dpr,0,0,dpr,0,0)}
   size();addEventListener('resize',size);
-  function mk(burst){return{x:burst?W/2+(Math.random()-.5)*120:Math.random()*W,y:burst?H*.75:-20-Math.random()*H,
+  function mk(burst,bx,by){return{x:burst?(bx??W/2)+(Math.random()-.5)*(bx!=null?30:120):Math.random()*W,y:burst?(by??H*.75):-20-Math.random()*H,
     vx:burst?(Math.random()-.5)*14:(Math.random()-.5)*.6,vy:burst?-8-Math.random()*10:.6+Math.random()*1.1,
     r:Math.random()*Math.PI,vr:(Math.random()-.5)*.15,w:5+Math.random()*6,h:3+Math.random()*9,c:cols[Math.random()*cols.length|0],
     t:Math.random()<.35?'curl':'rect',burst}}
@@ -202,7 +238,38 @@ button.party:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
     if(!reduce||parts.length)requestAnimationFrame(draw);
   }
   draw();
+  // Estourar
+  const total=spec.length;let popped=0,actx=null;
+  const count=document.getElementById('count'),done=document.getElementById('done'),refill=document.getElementById('refill');
+  const words=['POP!','Bum!','Plof!','Pá!','Uhuu!'];
+  function sound(){
+    try{actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+      const n=actx.sampleRate*.12,buf=actx.createBuffer(1,n,actx.sampleRate),ch=buf.getChannelData(0);
+      for(let i=0;i<n;i++)ch[i]=(Math.random()*2-1)*Math.pow(1-i/n,4);
+      const s=actx.createBufferSource(),f=actx.createBiquadFilter(),g=actx.createGain();
+      f.type='highpass';f.frequency.value=600+Math.random()*600;g.gain.value=.6;
+      s.buffer=buf;s.connect(f).connect(g).connect(actx.destination);s.start()}catch(e){}
+  }
+  function burst(x,y,n){const had=!parts.length;for(let i=0;i<n;i++){const p=mk(true,x,y);p.vx*=.8;p.vy*=.7;parts.push(p)}if(reduce&&had)requestAnimationFrame(draw)}
+  function pop(d,x,y){
+    if(d.classList.contains('popped'))return;
+    d.classList.remove('regrow');d.classList.add('popped');sound();burst(x,y,45);
+    const s=document.createElement('span');s.className='shard';s.textContent=words[Math.random()*words.length|0];
+    s.style.left=x+'px';s.style.top=y+'px';document.body.appendChild(s);setTimeout(()=>s.remove(),950);
+    popped++;count.textContent=popped+' de '+total+' estourados';
+    if(popped===total){done.hidden=false;refill.hidden=false;setTimeout(()=>burst(W/2,H*.8,220),250)}
+  }
+  refill.addEventListener('click',()=>{
+    host.querySelectorAll('.b').forEach((d,i)=>{d.classList.remove('popped');d.classList.add('regrow');d.style.animationDelay=(i*.06)+'s';
+      setTimeout(()=>{d.classList.remove('regrow');d.style.animationDelay=(-i*.7)+'s'},900+i*60)});
+    popped=0;count.textContent='0 de '+total+' estourados';done.hidden=true;refill.hidden=true;
+  });
+
+  const toast=document.getElementById('toast');let clicks=[],toastT;
   document.getElementById('party').addEventListener('click',()=>{
+    const now=Date.now();clicks=clicks.filter(c=>now-c<2000);clicks.push(now);
+    if(clicks.length>=4){clicks=[];toast.classList.remove('show');void toast.offsetWidth;toast.classList.add('show');
+      clearTimeout(toastT);toastT=setTimeout(()=>toast.classList.remove('show'),2600)}
     const hadNone=!parts.length;for(let i=0;i<160;i++)parts.push(mk(true));
     if(reduce&&hadNone)requestAnimationFrame(draw);
   });
